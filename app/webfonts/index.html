@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="Content-Security-Policy" content="script-src 'self' 'unsafe-inline'" />
+  <link rel="stylesheet" href="css/all.min.css" />
+  <link rel="stylesheet" href="css/materialize.min.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <title>ImageShrink</title>
+</head>
+
+<body>
+  <div class="container center-align">
+    <h3><i class="fas fa-images"></i> ImageShrink</h3>
+    <p>Choose an image to resize</p>
+
+    <!-- Browse button -->
+    <button id="browse-btn" class="btn teal">Browse</button>
+    <p id="file-name"></p>
+
+    <!-- Quality -->
+    <p>
+      <strong>Quality:</strong>
+      <em>The lower the quality, the smaller the file size</em>
+    </p>
+
+    <p class="range-field">
+      <input type="range" min="0" max="100" value="80" id="slider" />
+    </p>
+
+    <button id="resize-btn" class="btn black">Resize</button>
+
+    <div class="card output">
+      <div class="card-content">
+        Output Path:
+        <span id="output-path"></span>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/materialize.min.js"></script>
+  <script>
+    const { ipcRenderer } = require('electron')
+    const path = require('path')
+    const os = require('os')
+
+    const browseBtn = document.getElementById('browse-btn')
+    const resizeBtn = document.getElementById('resize-btn')
+    const fileName = document.getElementById('file-name')
+    const slider = document.getElementById('slider')
+
+    let selectedImagePath = null
+
+    document.getElementById('output-path').innerText =
+      path.join(os.homedir(), 'imageshrink')
+
+    // Open native file dialog
+    browseBtn.addEventListener('click', async () => {
+      const filePath = await ipcRenderer.invoke('open-file-dialog')
+
+      if (!filePath) return
+
+      selectedImagePath = filePath
+      fileName.innerText = path.basename(filePath)
+    })
+
+    resizeBtn.addEventListener('click', () => {
+      if (!selectedImagePath) {
+        M.toast({ html: 'Please select an image first' })
+        return
+      }
+
+      ipcRenderer.send('image:minimize', {
+        imgPath: selectedImagePath,
+        quality: slider.value,
+      })
+    })
+
+    ipcRenderer.on('image:done', () => {
+      M.toast({ html: 'Image resized successfully' })
+    })
+  </script>
+</body>
+
+</html>
